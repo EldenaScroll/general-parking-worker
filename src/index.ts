@@ -84,9 +84,17 @@ export default {
             }
         });
         
-        app.get('/api/lots', async (c) => {
+        app.get('/api/lot', async (c) => {
             const { results } = await env.DB
-                .prepare('SELECT id, name FROM lot')
+                .prepare('SELECT * FROM lot')
+                .all();
+
+            return c.json(results);
+        });
+
+        app.get('/api/space', async (c) => {
+            const { results } = await env.DB
+                .prepare('SELECT * FROM space')
                 .all();
 
             return c.json(results);
