@@ -127,6 +127,41 @@ export default {
             return c.json(results);
         });
         
+        app.post('/api/upload-frame', async (c) => {
+          try {
+            // 1) Get useful headers
+            const contentType = c.req.header('content-type') || 'application/octet-stream';
+        
+            // Optionally let the client pass ?filename=... in the URL
+            const url = new URL(c.req.url);
+            const filename = url.searchParams.get('filename') || 'frame.jpg';
+        
+            // 2) Read the raw request body as bytes
+            const arrayBuffer = await c.req.arrayBuffer();
+            const body = new Uint8Array(arrayBuffer);
+        
+            // 3) Create a key in R2 (you can customize this pattern)
+            const timestamp = Date.now();
+            const key = `frames/${timestamp}-${filename}`;
+        
+            // 4) Store in R2 with content type metadata
+            await c.env.r2_parking.put(key, body, {
+              httpMetadata: {
+                contentType,
+              },
+            });
+        
+            // 5) Return JSON with the key
+            return c.json({
+              success: true,
+              key,
+            });
+          } catch (err: any) {
+            console.error(err);
+            return c.json({ success: false, error: err?.message ?? String(err) }, 500);
+          }
+        });
+        
         return app.fetch(request, env, ctx);
     }
 } satisfies ExportedHandler<Env>;
