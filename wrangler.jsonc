@@ -19,7 +19,7 @@
 	    "binding": "r2_parking",
 	    "bucket_name": "parking"
 	  }
-	]
+	],
     "secrets_store_secrets": [
         {
             "store_id": "bf09b8f66aed47df8959736b6a7ce603",
