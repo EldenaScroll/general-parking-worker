@@ -174,7 +174,7 @@ export default {
               return c.json({
                 success: true,
                 key,
-                url: `/api/get-frame/${encodeURIComponent(key)}`,
+                url: `/api/get-frame/${key}`,
               });
             }
             
