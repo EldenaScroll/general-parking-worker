@@ -1,11 +1,10 @@
 import { Hono, Context, Next } from "hono";
 import { cors } from "hono/cors";
 import { handleRest } from './rest';
-import type { R2Bucket } from '@cloudflare/workers-types';
 
 export interface Env {
     DB: D1Database;
-    PARKING_BUCKET: R2Bucket;
+    r2_parking: R2Bucket;
     SECRET: SecretsStoreSecret;
 }
 
@@ -42,29 +41,27 @@ export default {
         });
         
         app.get('/api/r2-test', async (c) => {
-            try {
-                const key = 'test/hello.txt';
-                const body = 'Hello from R2 via Worker!';
+          try {
+            const key = 'test/hello.txt';
+            const body = 'Hello from R2 via Worker!';
         
-                // Use the env from the outer fetch closure
-                await env.PARKING_BUCKET.put(key, body);
+            // Use the binding name from the dashboard: r2_parking
+            await c.env.r2_parking.put(key, body);
         
-                const obj = await env.PARKING_BUCKET.get(key);
-                const text = obj ? await obj.text() : null;
+            const obj = await c.env.r2_parking.get(key);
+            const text = obj ? await obj.text() : null;
         
-                return c.json({
-                    key,
-                    value_read_back: text,
-                });
-            } catch (err: any) {
-                // Return the actual error so we can see what’s wrong
-                return c.json(
-                    {
-                        error: err?.message ?? String(err),
-                    },
-                    500
-                );
-            }
+            return c.json({
+              key,
+              value_read_back: text,
+            });
+          } catch (err: any) {
+            console.error(err);
+            return c.json(
+              { error: err?.message ?? String(err) },
+              500
+            );
+          }
         });
         
         // Secret Store key value that we have set
