@@ -17,7 +17,7 @@
 	"r2_databases": [
 		{
 			"binding": "R2_BUCKET", 
-			"bucket_name" = "parking"
+			"bucket_name": "parking"
 		}
 	]
     "secrets_store_secrets": [
