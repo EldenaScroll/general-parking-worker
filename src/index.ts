@@ -116,23 +116,26 @@ app.get('/api/space', async (c) => {
 });
 
 app.get('/api/get-frame/*', async (c) => {
-    try {
-        const fullPath = c.req.path;
-        const key = fullPath.replace('/api/get-frame/', '');
-
-        const object = await c.env.r2_parking.get(key);
-
-        if (!object) {
-            return c.json({ error: 'Not found' }, 404);
-        }
-
-        const headers = new Headers();
-        object.httpMetadata?.contentType && headers.set('Content-Type', object.httpMetadata.contentType);
-
-        return new Response(object.body, { headers });
-    } catch (err: any) {
-        return c.json({ error: err?.message ?? String(err) }, 500);
+  try {
+    const fullPath = c.req.path;
+    
+    // 1. Remove the prefix
+    // 2. decodeURIComponent turns "%2F" back into "/" and "%20" back into " "
+    const key = decodeURIComponent(fullPath.replace('/api/get-frame/', ''));
+    
+    const object = await c.env.r2_parking.get(key);
+    
+    if (!object) {
+      return c.json({ error: 'Not found' }, 404);
     }
+    
+    const headers = new Headers();
+    object.httpMetadata?.contentType && headers.set('Content-Type', object.httpMetadata.contentType);
+    
+    return new Response(object.body, { headers });
+  } catch (err: any) {
+    return c.json({ error: err?.message ?? String(err) }, 500);
+  }
 });
 
 app.post('/api/upload-frame', async (c) => {
@@ -203,8 +206,7 @@ app.post('/api/upload-frame', async (c) => {
         return c.json({
             success: true,
             key,
-            // We use encodeURIComponent to ensure the slashes in the key don't break the URL path parsing
-            url: `/api/get-frame/${encodeURIComponent(key)}`,
+            url: `/api/get-frame/${key}`, 
         });
     } catch (err: any) {
         console.error(err);
