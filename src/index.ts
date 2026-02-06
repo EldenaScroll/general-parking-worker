@@ -10,6 +10,9 @@ export interface Env {
 
 // Initialize Hono
 const app = new Hono<{ Bindings: Env }>();
+const CF_ACCOUNT_ID = "2547c53ef0fb34d93d2e6358ec838b5d"
+const CF_QUEUE_ID = "0c33e996bb0b4be09b526d569676027f"
+const CF_QUEUES_TOKEN = "surzkjJW8hpVvZKfZdcZ7P8sw5KmkVcCkutm4_E-"
 
 // Global Middleware
 app.use('*', cors());
@@ -49,6 +52,26 @@ const getEstDateFolder = () => {
     // Result: "06_01_2025"
     return formatter.format(now).replace(/\//g, '_');
 };
+
+
+async function publishFrameJob(env, payload) {
+  const url = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/queues/${CF_QUEUE_ID}/messages`;
+
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${CF_QUEUES_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ body: payload }), // IMPORTANT: { body: ... }
+  });
+
+  const data = await resp.json();
+  if (!data?.success) {
+    console.error("Queue publish failed:", data);
+  }
+  return data;
+}
 
 // Public Routes
 app.get('/api/health', (c) => {
@@ -166,12 +189,21 @@ app.post('/api/upload-frame', async (c) => {
             await c.env.r2_parking.put(key, body, {
                 httpMetadata: { contentType },
             });
-
+            
+            const lot_id = new URL(c.req.url).searchParams.get("lot_id") || "1";
+            
+            const publishResult = await publishFrameJob(c.env, {
+              key,
+              lot_id,
+              uploaded_at: Date.now(),
+              content_type: contentType,
+            });
+            
             return c.json({
-                success: true,
-                key,
-                // Ensure URL encoding handles the slashes correctly if needed by your client
-                url: `/api/get-frame/${key}`,
+              success: true,
+              key,
+              url: `/api/get-frame/${key}`,
+              enqueued: !!publishResult?.success, // optional: helps you debug
             });
         }
 
@@ -203,10 +235,20 @@ app.post('/api/upload-frame', async (c) => {
             httpMetadata: { contentType },
         });
 
+        const lot_id = new URL(c.req.url).searchParams.get("lot_id") || "1";
+        
+        const publishResult = await publishFrameJob(c.env, {
+          key,
+          lot_id,
+          uploaded_at: Date.now(),
+          content_type: contentType,
+        });
+        
         return c.json({
-            success: true,
-            key,
-            url: `/api/get-frame/${key}`, 
+          success: true,
+          key,
+          url: `/api/get-frame/${key}`,
+          enqueued: !!publishResult?.success, // optional: helps you debug
         });
     } catch (err: any) {
         console.error(err);
