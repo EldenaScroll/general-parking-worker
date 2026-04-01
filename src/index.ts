@@ -123,6 +123,30 @@ app.post('/query', authMiddleware, async (c) => {
     }
 });
 
+// Batch SQL Queries
+app.post('/batch-query', authMiddleware, async (c) => {
+    try {
+        const body = await c.req.json();
+        const { queries } = body;
+
+        if (!Array.isArray(queries) || queries.length === 0) {
+            return c.json({ error: 'queries array is required' }, 400);
+        }
+
+        const stmts = queries.map((q: { query: string; params?: any[] }) =>
+            c.env.DB.prepare(q.query).bind(...(q.params || []))
+        );
+
+        const results = await c.env.DB.batch(stmts);
+
+        return c.json({ success: true, results });
+    } catch (error: any) {
+        return c.json({ error: error.message }, 500);
+    }
+});
+
+
+
 //Parking Specific Routes
 app.get('/api/lot', async (c) => {
     const { results } = await c.env.DB
