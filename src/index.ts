@@ -162,6 +162,15 @@ app.get('/api/space', async (c) => {
     return c.json(results);
 });
 
+app.get('/api/space/:lot_id', async (c) => {
+    const lotId = c.req.param('lot_id');
+    const { results } = await c.env.DB
+        .prepare('SELECT * FROM space WHERE lot_id = ?')
+        .bind(lotId)
+        .all();
+    return c.json(results);
+});
+
 app.get('/api/get-frame/*', async (c) => {
   try {
     const fullPath = c.req.path;
