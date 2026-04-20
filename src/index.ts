@@ -6,6 +6,7 @@ export interface Env {
     DB: D1Database;
     r2_parking: R2Bucket;
     SECRET: SecretsStoreSecret; 
+    FRAME_JOBS: Queue;
 }
 
 // Initialize Hono
@@ -55,22 +56,13 @@ const getEstDateFolder = () => {
 
 
 async function publishFrameJob(env, payload) {
-  const url = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/queues/${CF_QUEUE_ID}/messages`;
-
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${CF_QUEUES_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ body: payload }), // IMPORTANT: { body: ... }
-  });
-
-  const data = await resp.json();
-  if (!data?.success) {
-    console.error("Queue publish failed:", data);
+  try {
+    await env.FRAME_JOBS.send(payload);
+    return { success: true };
+  } catch (err) {
+    console.error("Queue publish natively failed:", err);
+    return { success: false, error: err.message };
   }
-  return data;
 }
 
 // Public Routes
