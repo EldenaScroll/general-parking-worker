@@ -70,6 +70,10 @@ app.get('/api/health', (c) => {
     return c.json({ status: 'ok' });
 });
 
+app.get('/api/version', (c) => {
+    return c.json({ version: '2.0.0-queue-binding' });
+});
+
 app.get('/api/r2-test', async (c) => {
     try {
         const key = 'test/hello.txt';
